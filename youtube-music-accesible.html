@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music accesible – Prototipo WCAG 2.2 AA</title>
+<style>
+/* ========== TOKENS (contrastes calculados sobre #0f0f0f) ==========
+   --txt  #ffffff  -> 19.3:1 (AAA)   --txt2 #b8b8b8 -> 9.5:1 (AAA)
+   --acc  #ff6b6b  -> 6.9:1 (AA)     --foco #ffd400 -> 14:1 (AAA)   */
+:root{
+  --bg:#0f0f0f; --panel:#1a1a1a; --panel2:#272727; --borde:#6b6b6b;
+  --txt:#fff; --txt2:#b8b8b8; --acc:#ff6b6b; --foco:#ffd400;
+  --r:10px; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--txt);font-size:1rem;line-height:1.5;
+  display:grid;grid-template:"h h" auto "n m" 1fr "f f" auto/220px 1fr}
+/* Anillo de foco muy visible, doble capa (claro + oscuro) – WCAG 2.4.7 / 2.4.11 */
+:focus-visible{outline:3px solid var(--foco);outline-offset:2px;box-shadow:0 0 0 5px #000}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;border-radius:var(--r);padding:.5rem .8rem;min-height:44px;min-width:44px}
+button:hover{background:var(--panel2)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-999px;top:0;background:var(--foco);color:#000;padding:.7rem 1rem;z-index:99}
+.skip:focus{left:0}
+.sec{color:var(--txt2)}
+
+header{grid-area:h;display:flex;gap:1rem;align-items:center;padding:.6rem 1rem;border-bottom:1px solid var(--panel2)}
+.logo{font-weight:700;font-size:1.25rem}
+header form{flex:1;max-width:560px}
+header input{width:100%;min-height:44px;padding:.5rem 1rem;background:var(--panel);border:1px solid var(--borde);border-radius:var(--r)}
+header input::placeholder{color:var(--txt2)}
+
+nav{grid-area:n;padding:.8rem;border-right:1px solid var(--panel2)}
+nav ul{list-style:none;margin:0;padding:0}
+nav a{display:block;padding:.7rem 1rem;border-radius:var(--r);color:var(--txt);text-decoration:none}
+nav a:hover{background:var(--panel2)}
+nav a[aria-current="page"]{background:var(--panel2);font-weight:700;border-left:4px solid var(--acc)}
+
+main{grid-area:m;overflow:auto;padding:1.2rem 1.5rem;display:grid;grid-template-columns:1fr minmax(300px,380px);gap:1.5rem;align-content:start}
+main h1,main h2{margin:.2rem 0 .8rem;font-size:1.4rem}
+.carrusel-cab{display:flex;justify-content:space-between;align-items:center}
+.pista{display:flex;gap:.8rem;overflow-x:auto;padding:.5rem .3rem 1rem;list-style:none;margin:0;scroll-behavior:smooth}
+.pista li{flex:0 0 150px}
+.tarjeta{display:block;width:100%;text-align:left;padding:.4rem}
+.tarjeta img{width:100%;aspect-ratio:1;border-radius:var(--r);display:block}
+.tarjeta strong{display:block;margin-top:.4rem}
+
+aside{background:var(--panel);border-radius:var(--r);padding:.5rem;align-self:start;min-height:420px}
+[role=tablist]{display:flex;border-bottom:1px solid var(--borde)}
+[role=tab]{border-radius:var(--r) var(--r) 0 0;color:var(--txt2);border-bottom:3px solid transparent}
+[role=tab][aria-selected=true]{color:var(--txt);border-bottom-color:var(--acc);font-weight:700}
+[role=tabpanel]{padding:1rem .6rem}
+[role=tabpanel] ol{padding:0;list-style:none;margin:0}
+.cola-item{display:flex;justify-content:space-between;width:100%;text-align:left}
+.cola-item[aria-current=true]{background:var(--panel2);border-left:4px solid var(--acc)}
+.lyr p{margin:.3rem 0}
+.coment{border-bottom:1px solid var(--panel2);padding:.6rem 0}
+
+footer{grid-area:f;background:var(--panel);border-top:1px solid var(--borde);padding:.5rem 1rem;
+  display:grid;grid-template-columns:auto 1fr auto;gap:1rem;align-items:center}
+.ctrl{display:flex;gap:.3rem;align-items:center}
+#play{background:#fff;color:#000;border-radius:50%;width:52px;height:52px}
+#play:hover{background:#ddd}
+.prog{display:flex;gap:.6rem;align-items:center}
+.prog input{flex:1;accent-color:var(--acc);min-height:24px}
+.info{display:flex;gap:.7rem;align-items:center}
+.info img{width:48px;height:48px;border-radius:6px}
+[aria-pressed=true]{color:var(--acc)}
+#estado{min-height:1.5em}
+
+nav button{display:block;width:100%;text-align:left;padding:.7rem 1rem;min-height:44px}
+nav button[aria-current="page"]{background:var(--panel2);font-weight:700;border-left:4px solid var(--acc)}
+main.solo{grid-template-columns:minmax(0,860px)}main.solo aside{display:none}
+.banner{background:var(--panel);border:1px solid var(--borde);border-radius:var(--r);padding:.8rem 1rem;display:flex;gap:1rem;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:1rem}
+.pm{border:1px solid currentColor;border-radius:4px;padding:0 .35rem;font-size:.8rem}
+.btn-p{background:#fff;color:#000;font-weight:700}.btn-p:hover{background:#ddd}
+.chips{list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:.6rem}
+.chips button{background:var(--panel2);border:1px solid var(--borde)}
+.teoria h2{margin-top:1.8rem}.teoria h3{font-size:1.1rem;margin:1.2rem 0 .3rem}.teoria p,.teoria li{max-width:75ch}
+.tabla{overflow-x:auto;margin:1rem 0}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+caption{text-align:left;font-weight:700;padding:.4rem 0}
+th,td{border:1px solid var(--borde);padding:.5rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--panel2)}
+dialog{background:var(--panel);color:var(--txt);border:2px solid var(--txt);border-radius:var(--r);max-width:480px;padding:1.4rem}
+dialog::backdrop{background:rgba(0,0,0,.8)}
+fieldset{border:1px solid var(--borde);border-radius:var(--r);margin:1rem 0}
+fieldset label{display:block;padding:.5rem}
+fieldset input{width:20px;height:20px;vertical-align:middle;accent-color:var(--acc)}
+.fila{display:flex;gap:.6rem;justify-content:flex-end}
+.fila button{border:1px solid var(--borde)}
+[data-contraste=alto]{--bg:#000;--panel:#000;--panel2:#262626;--borde:#fff;--txt2:#fff;--acc:#ffe066}
+@media (max-width:900px){
+  body{grid-template:"h" auto "n" auto "m" 1fr "f" auto/1fr}
+  nav ul{display:flex;overflow:auto}
+  main{grid-template-columns:1fr}
+  footer{grid-template-columns:1fr}
+}
+/* ===== Botones refinados ===== */
+button{transition:background .15s,transform .1s,border-color .15s;display:inline-flex;align-items:center;justify-content:center;gap:.4rem;font-weight:600}
+button:active{transform:scale(.95)}
+button i{display:inline-flex}
+.btn-p{background:#fff;color:#000;border-radius:999px;padding:.6rem 1.4rem;box-shadow:0 1px 0 rgba(255,255,255,.3)}
+.btn-p:hover{background:#e6e6e6}
+.btn-s{border:2px solid var(--txt);border-radius:999px;padding:.6rem 1.4rem;background:transparent}
+.btn-s:hover{background:var(--panel2)}
+header .ctrl button{border:1px solid var(--borde);border-radius:999px;font-size:.9rem}
+header .ctrl button:hover{border-color:var(--txt)}
+header #menu{border:0;border-radius:50%}
+.chips button{border-radius:999px;padding:.5rem 1.1rem}
+.chips button:hover{background:#3a3a3a;border-color:var(--txt)}
+.carrusel-cab .carbtn,.carrusel-cab button{border:1px solid var(--borde);border-radius:50%;width:44px;padding:0;margin-left:.3rem;font-size:1.4rem;line-height:1}
+.tarjeta{border-radius:12px;display:block}
+.tarjeta:hover{background:var(--panel2)}
+.tarjeta img{transition:transform .2s}
+.tarjeta:hover img{transform:scale(1.03)}
+[role=tab]{border-radius:999px;margin:.2rem .1rem}
+[role=tab][aria-selected=true]{background:var(--panel2);border-bottom-color:transparent;box-shadow:inset 0 -3px 0 var(--acc)}
+.cola-item{border-radius:var(--r)}
+footer button{border-radius:50%}
+footer #dl{border-radius:999px;border:1px solid var(--borde);font-size:.85rem}
+#play{width:56px;height:56px;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+#play:hover{transform:scale(1.06)}
+#play svg{width:30px;height:30px}
+[aria-pressed=true]{background:rgba(255,107,107,.18)}
+[data-contraste=alto] [aria-pressed=true]{background:#333}
+nav button{border-radius:var(--r)}
+.pm{background:var(--foco);color:#000;border-color:#000;font-weight:700;border-radius:999px;padding:.05rem .5rem}
+/* Barra de progreso con pista visible */
+input[type=range]{-webkit-appearance:none;appearance:none;height:8px;border-radius:999px;background:var(--borde);cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--acc)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--acc)}
+/* ===== Nuevos componentes ===== */
+header form{position:relative}
+.err{color:#ffb3b3;font-weight:700;margin:.3rem 0 0}
+input[aria-invalid=true]{border:2px solid #ffb3b3}
+.sw{display:flex;gap:.7rem;align-items:center;padding:.5rem 0;min-height:44px;cursor:pointer}
+.sw input{width:22px;height:22px;accent-color:var(--acc)}
+output{min-width:4rem;text-align:center;font-weight:700}
+.atajos{display:grid;grid-template-columns:auto 1fr;gap:.5rem 1rem;margin:0 0 1rem}
+.atajos dt{white-space:nowrap}.atajos dd{margin:0}
+kbd{background:var(--panel2);border:1px solid var(--borde);border-radius:5px;padding:.05rem .4rem;font-size:.85rem}
+.lyl{list-style:none;padding:0;margin:0}
+.lyl li{padding:.45rem .6rem;border-left:4px solid transparent;color:var(--txt2);border-radius:6px}
+.lyl li[aria-current=true]{color:var(--txt);font-weight:700;border-left-color:var(--acc);background:var(--panel2)}
+dialog{width:min(480px,calc(100vw - 2rem));max-height:90vh;max-height:90dvh;overflow:auto}
+html[data-esp] *{line-height:1.5!important;letter-spacing:.12em!important;word-spacing:.16em!important}
+html[data-esp] p{margin-bottom:2em!important}
+html[data-mov] *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+
+/* ===== Diseño adaptable (responsive) ===== */
+body{height:100vh;height:100dvh}
+body.sin-nav{grid-template-columns:0 minmax(0,1fr)}
+body>*{min-width:0}
+main{min-width:0}
+img{max-width:100%}
+@media (max-width:1100px){
+  main{grid-template-columns:minmax(0,1fr)}
+  aside{min-height:0}
+}
+@media (max-width:900px){
+  body,body.sin-nav{grid-template:"h" auto "n" auto "m" minmax(0,1fr) "f" auto/minmax(0,1fr)}
+  header{flex-wrap:wrap;gap:.5rem;padding:.5rem .7rem}
+  header form{order:5;flex:1 1 100%;max-width:none}
+  .logo{flex:1}
+  nav{border-right:0;border-bottom:1px solid var(--panel2);padding:.3rem .5rem}
+  nav ul{display:flex;gap:.3rem;overflow-x:auto}
+  nav li{flex:0 0 auto}
+  nav button{white-space:nowrap}
+  main{padding:.8rem}
+  footer{grid-template-columns:minmax(0,1fr);gap:.3rem;padding:.4rem .7rem}
+  footer>div:nth-child(2){order:1}
+  footer>.ctrl:nth-child(1){order:2;justify-content:center}
+  footer>.ctrl:nth-child(3){order:3;justify-content:center;flex-wrap:wrap}
+}
+@media (max-width:560px){
+  .txt-btn{display:none}
+  .pista li{flex-basis:128px}
+  .banner{flex-direction:column;align-items:stretch;text-align:center}
+  .carrusel-cab h2,main h1{font-size:1.2rem}
+  table{font-size:.8rem}
+  .atajos{grid-template-columns:1fr}
+  .info img{width:40px;height:40px}
+  .prog{gap:.4rem}
+}
+@media (max-height:480px) and (orientation:landscape){
+  footer{padding:.2rem .7rem}.info{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<a class="skip" href="#principal">Saltar al contenido principal</a>
+
+<!-- Región viva: anuncia cambios de estado a lectores de pantalla (WCAG 4.1.3) -->
+<div id="anuncios" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<header>
+  <button id="menu" aria-label="Abrir menú de navegación" aria-expanded="true" aria-controls="nav-lat"><i data-ic="menu"></i></button>
+  <span class="logo">Music</span>
+  <form id="fbus" role="search" aria-label="Buscar en Music" novalidate>
+    <label class="sr-only" for="q">Buscar canciones, álbumes, artistas o pódcasts</label>
+    <input id="q" type="search" placeholder="Buscar canciones, álbumes, artistas o pódcasts" aria-describedby="q-err" autocomplete="off">
+    <p id="q-err" class="err" role="alert" hidden></p>
+  </form>
+  <div class="ctrl" role="group" aria-label="Ayudas de accesibilidad">
+    <button id="ajb" aria-haspopup="dialog"><i data-ic="acc"></i><span class="txt-btn">Accesibilidad</span></button>
+    <button id="atj" aria-haspopup="dialog"><i data-ic="kbd"></i><span class="txt-btn">Atajos</span></button>
+  </div>
+</header>
+
+<nav id="nav-lat" aria-label="Navegación principal">
+  <ul>
+    <li><button data-vista="inicio" aria-current="page">Inicio</button></li>
+    <li><button data-vista="explorar">Explorar</button></li>
+    <li><button data-vista="biblio">Mi biblioteca</button></li>
+    <li><button data-vista="acc">Accesibilidad</button></li>
+  </ul>
+</nav>
+
+<main id="principal" tabindex="-1">
+  <div id="v-inicio" class="vista">
+    <h1 id="h-inicio" tabindex="-1">Inicio</h1>
+    <div class="banner" role="region" aria-label="Plan actual">
+      <p style="margin:0"><strong>Plan gratuito.</strong> Incluye anuncios y 5 saltos de canción. Premium: sin anuncios, descargas y saltos ilimitados.</p>
+      <button id="ban" class="btn-p">Ver planes Premium</button>
+    </div>
+    <section aria-labelledby="t1">
+      <div class="carrusel-cab"><h2 id="t1">Vuelve a escucharlo</h2>
+        <div><button data-car="c1" data-dir="-1" aria-label="Desplazar «Vuelve a escucharlo» hacia atrás">‹</button>
+        <button data-car="c1" data-dir="1" aria-label="Desplazar «Vuelve a escucharlo» hacia delante">›</button></div></div>
+      <ul class="pista" id="c1" role="list" aria-label="Carrusel: Vuelve a escucharlo. Use las flechas izquierda y derecha para moverse."></ul>
+    </section>
+    <section aria-labelledby="t2">
+      <div class="carrusel-cab"><h2 id="t2">Selecciones rápidas</h2>
+        <div><button data-car="c2" data-dir="-1" aria-label="Desplazar «Selecciones rápidas» hacia atrás">‹</button>
+        <button data-car="c2" data-dir="1" aria-label="Desplazar «Selecciones rápidas» hacia delante">›</button></div></div>
+      <ul class="pista" id="c2" role="list" aria-label="Carrusel: Selecciones rápidas. Use las flechas izquierda y derecha para moverse."></ul>
+    </section>
+  </div>
+
+
+  <div id="v-busq" class="vista" hidden>
+    <h1 id="h-busq" tabindex="-1">Resultados de búsqueda</h1>
+    <p id="busq-r" class="sec"></p>
+    <ul id="busq-l" class="chips" aria-label="Resultados"></ul>
+  </div>
+
+  <div id="v-explorar" class="vista" hidden>
+    <h1 id="h-explorar" tabindex="-1">Explorar</h1>
+    <h2>Música para tu momento</h2>
+    <ul class="chips">
+      <li><button>Dormir</button></li><li><button>Relax</button></li><li><button>Amor</button></li>
+      <li><button>Energía</button></li><li><button>Entrenamiento</button></li><li><button>Fiesta</button></li><li><button>Concentración</button></li>
+    </ul>
+  </div>
+
+  <div id="v-biblio" class="vista" hidden>
+    <h1 id="h-biblio" tabindex="-1">Mi biblioteca</h1>
+    <ul class="chips">
+      <li><button>Listas de reproducción</button></li><li><button>Álbumes</button></li><li><button>Artistas</button></li>
+      <li><button id="dl2"><i data-ic="lock"></i> Descargas <span class="pm">Premium</span></button></li>
+    </ul>
+    <p class="sec">Las funciones con la etiqueta «Premium» se anuncian con texto e icono, no solo con color, y explican por qué no están disponibles.</p>
+  </div>
+
+  <div id="v-acc" class="vista teoria" hidden>
+    <h1 id="h-acc" tabindex="-1">Accesibilidad de este sitio</h1>
+    <p>Esta sección vincula el prototipo con los contenidos de la <em>Guía técnica para la implementación de sitios web accesibles</em> (SENADIS, 2022), basada en WCAG 2.1 y en el borrador de WCAG 2.2.</p>
+
+    <h2>Marco de referencia</h2>
+    <ul>
+      <li><strong>Ley 20.422 (2010), art. 3:</strong> define la accesibilidad universal y el diseño universal. Los entornos, bienes y servicios deben poder usarse por todas las personas sin adaptaciones especiales.</li>
+      <li><strong>Decreto N°1 (2015):</strong> norma técnica sobre sitios web de la administración del Estado.</li>
+      <li><strong>Convención sobre los Derechos de las Personas con Discapacidad (CDPD):</strong> reconoce el acceso a la información como derecho.</li>
+      <li><strong>WCAG 2.1:</strong> 4 principios, 13 pautas y 78 criterios de éxito. El borrador 2.2 que cita la guía suma 9 criterios (87 en total).</li>
+    </ul>
+
+    <h2>Beneficios de la accesibilidad web</h2>
+    <ul>
+      <li>Garantiza el derecho de las personas con discapacidad a participar en la sociedad y a acceder a la información.</li>
+      <li>Facilita el acceso a sitios públicos y privados, a trámites en línea y al teletrabajo.</li>
+      <li>Amplía el público del sitio, también para personas mayores y con discapacidad temporal (una pierna rota, lentes perdidos).</li>
+      <li>Permite acceder con conexiones lentas, porque la información puede presentarse solo como texto.</li>
+      <li>Funciona con independencia del dispositivo.</li>
+      <li><em>En este sitio:</em> las letras y los comentarios son texto, de modo que las personas sordas acceden al contenido de la canción. El plan gratuito no limita ninguna función de accesibilidad.</li>
+    </ul>
+
+    <h2>Principios y pautas</h2>
+    <div class="tabla" role="region" aria-label="Tabla de principios y pautas" tabindex="0">
+    <table><caption>Los cuatro principios WCAG y sus 13 pautas</caption>
+      <thead><tr><th scope="col">Principio</th><th scope="col">Pautas</th><th scope="col">Aplicación en el prototipo</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">1. Perceptible</th><td>1.1 Texto alternativo; 1.2 Multimedia dependiente del tiempo; 1.3 Adaptable; 1.4 Distinguible</td><td>Portadas con <code>alt</code>, letras en texto, estructura semántica y contraste alto.</td></tr>
+        <tr><th scope="row">2. Operable</th><td>2.1 Teclado accesible; 2.2 Tiempo suficiente; 2.3 Convulsiones; 2.4 Navegación; 2.5 Modalidades de entrada</td><td>Carruseles con flechas, enlace de salto, foco visible, objetivos de 44 px, sin límites de tiempo ni parpadeos.</td></tr>
+        <tr><th scope="row">3. Comprensible</th><td>3.1 Legible; 3.2 Previsible; 3.3 Asistencia a la entrada de datos</td><td>Idioma <code>es</code>, cambios solo a petición del usuario y diálogo de suscripción con confirmación explícita.</td></tr>
+        <tr><th scope="row">4. Robusto</th><td>4.1 Compatible</td><td>HTML nativo, ARIA de pestañas y mensajes de estado con <code>role="status"</code>.</td></tr>
+      </tbody></table></div>
+
+    <h2>Niveles de conformidad</h2>
+    <p><strong>A</strong> es el mínimo. <strong>AA</strong> exige cumplir A y AA, y es el objetivo habitual de la normativa. <strong>AAA</strong> exige los tres niveles. La conformidad se evalúa sobre la página completa, y en un proceso de varios pasos (como suscribirse) deben cumplirla todas las pantallas.</p>
+
+    <div class="tabla" role="region" aria-label="Criterios aplicados" tabindex="0">
+    <table><caption>Criterios de éxito aplicados</caption>
+      <thead><tr><th scope="col">Criterio</th><th scope="col">Nivel</th><th scope="col">Dónde se aplica</th></tr></thead>
+      <tbody>
+        <tr><td>1.1.1 Contenido no textual</td><td>A</td><td>Portadas con alternativa textual.</td></tr>
+        <tr><td>1.3.1 Información y relaciones</td><td>A</td><td>Landmarks, listas, tablas con <code>scope</code>.</td></tr>
+        <tr><td>1.4.1 Uso del color</td><td>A</td><td>Etiqueta «Premium» con texto, borde e icono.</td></tr>
+        <tr><td>1.4.3 / 1.4.11 Contraste</td><td>AA</td><td>Tokens CSS y modo de alto contraste.</td></tr>
+        <tr><td>1.4.4 Cambio de tamaño del texto</td><td>AA</td><td>Botones A− y A+ (hasta 200 %).</td></tr>
+        <tr><td>2.1.1 Teclado / 2.1.2 Sin trampas</td><td>A</td><td>Carruseles, pestañas y diálogo (Esc cierra y devuelve el foco).</td></tr>
+        <tr><td>2.4.1 Evitar bloques</td><td>A</td><td>Enlace «Saltar al contenido principal».</td></tr>
+        <tr><td>2.4.7 Foco visible</td><td>AA</td><td>Anillo amarillo de 3 px con contorno oscuro.</td></tr>
+        <tr><td>2.5.8 Tamaño del objetivo (2.2)</td><td>AA</td><td>Controles de 44 × 44 px.</td></tr>
+        <tr><td>3.1.1 Idioma de la página</td><td>A</td><td><code>lang="es"</code>.</td></tr>
+        <tr><td>3.3.2 Etiquetas o instrucciones</td><td>A</td><td><code>fieldset</code> y <code>legend</code> en la elección de plan.</td></tr>
+        <tr><td>3.3.4 Prevención de errores (transacciones)</td><td>AA</td><td>La suscripción exige confirmar y se puede cancelar.</td></tr>
+        <tr><td>4.1.2 Nombre, función, valor</td><td>A</td><td>Botones nativos, <code>aria-pressed</code>, <code>aria-current</code>.</td></tr>
+        <tr><td>1.3.4 Orientación / 1.4.10 Reflow</td><td>AA</td><td>Diseño adaptable: sin desplazamiento horizontal hasta 320 px, en vertical y horizontal.</td></tr>
+        <tr><td>1.4.12 Espaciado del texto</td><td>AA</td><td>Ajuste «Espaciado de texto ampliado» (interlineado 1,5; letras 0,12 em).</td></tr>
+        <tr><td>2.1.4 Atajos con teclas de carácter</td><td>A</td><td>El atajo Espacio se puede desactivar en Ajustes.</td></tr>
+        <tr><td>2.3.3 Animación de interacciones</td><td>AAA</td><td>Opción «Reducir animaciones» y respeto de <code>prefers-reduced-motion</code>.</td></tr>
+        <tr><td>3.2.3 Navegación coherente</td><td>AA</td><td>Menú, buscador, ajustes y reproductor siempre en el mismo lugar.</td></tr>
+        <tr><td>3.3.1 / 3.3.3 Identificación y sugerencia de errores</td><td>A / AA</td><td>El buscador vacío muestra «Error:» con ejemplo; sin resultados, propone alternativas.</td></tr>
+        <tr><td>4.1.3 Mensajes de estado</td><td>AA</td><td>Región <code>aria-live</code> para reproducción, saltos y suscripción.</td></tr>
+      </tbody></table></div>
+
+    <h2>Diseño adaptable y accesibilidad</h2>
+    <p>La guía destaca la independencia del dispositivo como beneficio. En este prototipo el diseño se adapta a móvil, tableta y escritorio: el contenido se reordena en una sola columna (<em>reflow</em>, 1.4.10), el menú se pliega con <code>aria-expanded</code>, los objetivos táctiles miden 44 px y las preferencias del usuario (tamaño, contraste, espaciado, movimiento) se recuerdan entre visitas.</p>
+
+    <h2>Accesibilidad y suscripción de pago</h2>
+    <p>El servicio reserva funciones (descargas, sin anuncios, saltos ilimitados) para el plan Premium. Un muro de pago no es una barrera si se diseña bien:</p>
+    <ul>
+      <li>Las funciones bloqueadas siguen siendo focalizables y explican el motivo (<code>aria-label</code> «requiere Premium»), en vez de quedar ocultas o inertes.</li>
+      <li>El diálogo modal gestiona el foco, se cierra con Esc y no impone límites de tiempo (2.2.1).</li>
+      <li>La compra exige confirmación explícita (3.3.4) y la opción «Ahora no» tiene el mismo peso visual.</li>
+      <li>Ninguna función de accesibilidad depende del pago.</li>
+    </ul>
+  </div>
+
+  <!-- Panel lateral: patrón WAI-ARIA Tabs -->
+  <aside aria-label="Información de la canción">
+    <div role="tablist" aria-label="Secciones del reproductor">
+      <button role="tab" id="tab-cola" aria-controls="p-cola" aria-selected="true">A continuación</button>
+      <button role="tab" id="tab-letra" aria-controls="p-letra" aria-selected="false" tabindex="-1">Letra</button>
+      <button role="tab" id="tab-com" aria-controls="p-com" aria-selected="false" tabindex="-1">Comentarios</button>
+    </div>
+    <div role="tabpanel" id="p-cola" aria-labelledby="tab-cola" tabindex="0">
+      <ol id="cola" aria-label="Cola de reproducción"></ol>
+    </div>
+    <div role="tabpanel" id="p-letra" aria-labelledby="tab-letra" tabindex="0" hidden class="lyr">
+      <p class="sec">Letra de ejemplo (texto ficticio), sincronizada con la reproducción. La línea actual se marca con negrita y borde, no solo con color.</p><ol id="lyr" class="lyl" aria-label="Letra de la canción"></ol>
+    </div>
+    <div role="tabpanel" id="p-com" aria-labelledby="tab-com" tabindex="0" hidden>
+      <h2 style="font-size:1.1rem">2 comentarios</h2>
+      <article class="coment"><strong>@usuario1</strong> <span class="sec">hace 4 meses</span><p>Un talento poco común. ¡Felicidades!</p></article>
+      <article class="coment"><strong>@usuario2</strong> <span class="sec">hace 1 mes</span><p>¡Gracias por la música!</p></article>
+    </div>
+  </aside>
+</main>
+
+<footer aria-label="Reproductor de música">
+  <div class="ctrl" role="group" aria-label="Controles de reproducción">
+    <button id="prev" aria-label="Canción anterior"><i data-ic="prev"></i></button>
+    <button id="play" aria-label="Reproducir"><i data-ic="play"></i></button>
+    <button id="next" aria-label="Canción siguiente"><i data-ic="next"></i></button>
+  </div>
+  <div>
+    <div class="info">
+      <img id="cover" alt="">
+      <div><strong id="tit"></strong><div id="art" class="sec"></div><div id="saltos" class="sec">Plan gratuito: 5 saltos disponibles</div></div>
+    </div>
+    <div class="prog">
+      <span id="t-act" class="sec">0:00</span>
+      <label class="sr-only" for="barra">Progreso de la canción</label>
+      <input id="barra" type="range" min="0" max="100" value="0" aria-valuetext="0 segundos de 3 minutos 28">
+      <span id="t-tot" class="sec">3:28</span>
+    </div>
+  </div>
+  <div class="ctrl" role="group" aria-label="Opciones">
+    <button id="like" aria-pressed="false" aria-label="Me gusta"><i data-ic="like"></i></button>
+    <button id="rep" aria-pressed="false" aria-label="Repetir"><i data-ic="rep"></i></button>
+    <button id="rnd" aria-pressed="false" aria-label="Reproducción aleatoria"><i data-ic="rnd"></i></button>
+    <button id="dl" aria-label="Descargar canción, requiere Premium"><i data-ic="dl"></i> <span class="pm">Premium</span></button>
+  </div>
+</footer>
+
+<dialog id="dajus" aria-labelledby="daj-t">
+  <h2 id="daj-t" style="margin-top:0">Ajustes de accesibilidad</h2>
+  <div class="ctrl" role="group" aria-label="Tamaño del texto">
+    <button type="button" id="amenos" class="btn-s" aria-label="Reducir tamaño del texto">A−</button>
+    <output id="fs-v" for="amenos amas">100 %</output>
+    <button type="button" id="amas" class="btn-s" aria-label="Aumentar tamaño del texto">A+</button>
+  </div>
+  <label class="sw"><input type="checkbox" id="contr"> Alto contraste</label>
+  <label class="sw"><input type="checkbox" id="esp"> Espaciado de texto ampliado</label>
+  <label class="sw"><input type="checkbox" id="mov"> Reducir animaciones</label>
+  <label class="sw"><input type="checkbox" id="atjc"> Atajos de teclado (Espacio reproduce o pausa)</label>
+  <p class="sec">Tus preferencias se guardan en este navegador.</p>
+  <div class="fila"><button type="button" id="rst" class="btn-s">Restablecer</button><button type="button" id="cerr-aj" class="btn-p">Listo</button></div>
+</dialog>
+
+<dialog id="datj" aria-labelledby="datj-t">
+  <h2 id="datj-t" style="margin-top:0">Atajos de teclado</h2>
+  <dl class="atajos">
+    <dt><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></dt><dd>Avanzar o retroceder entre controles</dd>
+    <dt><kbd>←</kbd> <kbd>→</kbd> <kbd>Inicio</kbd> <kbd>Fin</kbd></dt><dd>Moverse en carruseles y pestañas</dd>
+    <dt><kbd>Enter</kbd> / <kbd>Espacio</kbd></dt><dd>Activar el control enfocado</dd>
+    <dt><kbd>Espacio</kbd></dt><dd>Reproducir o pausar (fuera de controles; se puede desactivar)</dd>
+    <dt><kbd>Esc</kbd></dt><dd>Cerrar cualquier diálogo</dd>
+  </dl>
+  <div class="fila"><button type="button" id="cerr-atj" class="btn-p">Cerrar</button></div>
+</dialog>
+
+<dialog id="dlg" aria-labelledby="dlg-t" aria-describedby="dlg-d">
+  <form id="fplan" onsubmit="return false">
+    <h2 id="dlg-t" style="margin-top:0">Esta función es de Premium</h2>
+    <p id="dlg-d"></p>
+    <fieldset><legend>Elige un plan (precios de ejemplo)</legend>
+      <label><input type="radio" name="plan" value="Individual" checked> Individual: 4,99 USD al mes</label>
+      <label><input type="radio" name="plan" value="Familiar"> Familiar: 7,99 USD al mes</label>
+      <label><input type="radio" name="plan" value="Estudiante"> Estudiante: 2,99 USD al mes</label>
+    </fieldset>
+    <p class="sec">No se realiza ningún cobro: es una simulación. Puedes cancelar cuando quieras.</p>
+    <div class="fila"><button type="button" id="dno" class="btn-s">Ahora no</button><button type="button" id="dok" class="btn-p">Confirmar plan</button></div>
+  </form>
+</dialog>
+
+<script>
+/* ===== Datos simulados ===== */
+const canciones=[
+ {t:"Run Rabbit",a:"Mollie Elizabeth",d:"3:10",c:"#2e7d32",desc:"mujer con vestido blanco en un jardín"},
+ {t:"Money",a:"Debbii Dawson",d:"3:28",c:"#1565c0",desc:"mujer con traje negro sobre fondo azul"},
+ {t:"Headlock",a:"Imogen Heap",d:"3:36",c:"#6d4c41",desc:"ilustración en blanco y negro"},
+ {t:"STARCROSSED",a:"PEGGY y Lydia the Bard",d:"3:05",c:"#c77700",desc:"figura en tonos dorados"},
+ {t:"Dracula",a:"Tame Impala",d:"3:30",c:"#4527a0",desc:"escena nocturna con luces"},
+ {t:"Dummy",a:"The Regrettes",d:"3:17",c:"#00838f",desc:"paisaje de colores"}];
+let actual=1, sonando=false, seg=0, timer=null;
+const $=id=>document.getElementById(id);
+/* Iconos SVG decorativos (aria-hidden): el nombre accesible lo da el aria-label del botón */
+const D={play:"M8 5v14l11-7z",pause:"M6 5h4v14H6zM14 5h4v14h-4z",prev:"M6 6h2v12H6zM9.5 12 18 18V6z",next:"M16 6h2v12h-2zM6 18l8.5-6L6 6z",
+ like:"M1 21h4V9H1v12zM23 10c0-1.1-.9-2-2-2h-6.3l.9-4.6v-.3c0-.4-.2-.8-.4-1.1L14 1 7.6 7.4C7.2 7.8 7 8.3 7 8.8V19c0 1.1.9 2 2 2h9c.8 0 1.5-.5 1.8-1.2l3-7c.1-.2.2-.5.2-.8v-2z",
+ rep:"M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z",
+ rnd:"M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z",
+ dl:"M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z",menu:"M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z",
+ acc:"M12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z",kbd:"M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zM11 8h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zM5 8h2v2H5V8zm0 3h2v2H5v-2zm11 6H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z",lock:"M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zM9 6a3 3 0 0 1 6 0v2H9V6z"};
+const ICO=Object.fromEntries(Object.entries(D).map(([k,d])=>[k,`<svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="${d}"/></svg>`]));
+document.querySelectorAll("[data-ic]").forEach(e=>e.innerHTML=ICO[e.dataset.ic]);
+const anunciar=m=>{const r=$("anuncios");r.textContent="";setTimeout(()=>r.textContent=m,50)};
+
+/* Portada como imagen SVG con alt descriptivo (WCAG 1.1.1) */
+const portada=c=>"data:image/svg+xml,"+encodeURIComponent(
+ `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="${c}"/><circle cx="50" cy="42" r="20" fill="#ffffff55"/></svg>`);
+
+/* ===== Carruseles con teclado: Tab entra, ←/→/Inicio/Fin se mueven, sin trampas de foco ===== */
+function montarCarrusel(id,lista){
+  const ul=$(id);
+  lista.forEach((s,i)=>{
+    const li=document.createElement("li");
+    li.innerHTML=`<button class="tarjeta" tabindex="${i?-1:0}" aria-label="Reproducir ${s.t}, de ${s.a}">
+      <img src="${portada(s.c)}" alt="Portada de ${s.t}: ${s.desc}"><strong>${s.t}</strong><span class="sec">${s.a}</span></button>`;
+    li.firstChild.addEventListener("click",()=>elegir(canciones.indexOf(s)));
+    ul.append(li);
+  });
+  ul.addEventListener("keydown",e=>{
+    const b=[...ul.querySelectorAll(".tarjeta")],i=b.indexOf(document.activeElement);
+    if(i<0)return;
+    let n=null;
+    if(e.key==="ArrowRight")n=Math.min(i+1,b.length-1);
+    if(e.key==="ArrowLeft")n=Math.max(i-1,0);
+    if(e.key==="Home")n=0; if(e.key==="End")n=b.length-1;
+    if(n===null)return; e.preventDefault();
+    b[i].tabIndex=-1;b[n].tabIndex=0;b[n].focus();
+    b[n].scrollIntoView({inline:"nearest",block:"nearest"});
+  });
+}
+document.querySelectorAll("[data-car]").forEach(b=>b.addEventListener("click",()=>{
+  $(b.dataset.car).scrollBy({left:b.dataset.dir*320});
+}));
+montarCarrusel("c1",canciones); montarCarrusel("c2",[...canciones].reverse());
+
+/* ===== Cola ===== */
+function pintarCola(){
+  $("cola").innerHTML=canciones.map((s,i)=>`<li><button class="cola-item" data-i="${i}" ${i===actual?'aria-current="true"':""}>
+    <span><strong>${s.t}</strong><br><span class="sec">${s.a}</span></span><span class="sec">${s.d}</span></button></li>`).join("");
+  document.querySelectorAll(".cola-item").forEach(b=>b.onclick=()=>elegir(+b.dataset.i));
+}
+
+/* ===== Reproductor simulado ===== */
+const fmt=s=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+function pintarPista(){
+  const s=canciones[actual];
+  $("tit").textContent=s.t;$("art").textContent=s.a;
+  $("cover").src=portada(s.c);$("cover").alt="Portada de "+s.t+": "+s.desc;
+  const p=$("play");p.innerHTML=ICO[sonando?"pause":"play"];p.setAttribute("aria-label",sonando?"Pausar":"Reproducir");
+  pintarCola();
+}
+function elegir(i){actual=(i+canciones.length)%canciones.length;seg=0;sonando=true;pintarPista();tick();
+  anunciar(`Reproduciendo ${canciones[actual].t}, de ${canciones[actual].a}`)}
+function alternar(){sonando=!sonando;pintarPista();tick();anunciar(sonando?"Reproducción iniciada":"Reproducción en pausa")}
+function tick(){clearInterval(timer);if(!sonando)return;
+  timer=setInterval(()=>{seg=Math.min(seg+1,208);$("barra").value=seg/208*100;sync();
+    $("t-act").textContent=fmt(seg);
+    $("barra").setAttribute("aria-valuetext",`${fmt(seg)} de 3:28`);
+    if(seg>=208)elegir(actual+1)},1000)}
+$("play").onclick=alternar;
+/* Plan gratuito: saltos limitados; al agotarse se explica y se ofrece Premium */
+let saltos=5;
+function saltar(d){
+  if(saltos<=0){anunciar("Alcanzaste el límite de saltos del plan gratuito.");premium("Saltos ilimitados");return}
+  saltos--;$("saltos").textContent=`Plan gratuito: ${saltos} saltos disponibles`;elegir(actual+d)}
+$("next").onclick=()=>saltar(1);
+$("prev").onclick=()=>saltar(-1);
+$("barra").oninput=e=>{seg=Math.round(e.target.value/100*208);$("t-act").textContent=fmt(seg)};
+[["like","Me gusta","Quitar me gusta"],["rep","Repetir","Repetir"],["rnd","Reproducción aleatoria","Reproducción aleatoria"]].forEach(([id,on,off])=>{
+  $(id).onclick=e=>{const v=e.currentTarget.getAttribute("aria-pressed")!=="true";
+    e.currentTarget.setAttribute("aria-pressed",v);anunciar(`${on} ${v?"activado":"desactivado"}`)}});
+/* Atajo: barra espaciadora play/pausa (no interfiere en campos de texto ni botones) */
+document.addEventListener("keydown",e=>{
+  if(PREF.atj&&e.code==="Space"&&!/INPUT|BUTTON|A/.test(document.activeElement.tagName)){e.preventDefault();alternar()}});
+
+/* ===== Pestañas: ←/→/Inicio/Fin con activación inmediata ===== */
+const tabs=[...document.querySelectorAll("[role=tab]")];
+function selTab(t,foco){
+  tabs.forEach(x=>{const on=x===t;x.setAttribute("aria-selected",on);x.tabIndex=on?0:-1;
+    $(x.getAttribute("aria-controls")).hidden=!on});
+  if(foco)t.focus();
+}
+tabs.forEach((t,i)=>{
+  t.onclick=()=>selTab(t);
+  t.onkeydown=e=>{const m={ArrowRight:i+1,ArrowLeft:i-1,Home:0,End:tabs.length-1}[e.key];
+    if(m===undefined)return;e.preventDefault();selTab(tabs[(m+tabs.length)%tabs.length],true)}});
+
+/* ===== Menú lateral con aria-expanded ===== */
+$("menu").onclick=e=>{const b=e.currentTarget,a=b.getAttribute("aria-expanded")==="true";
+  b.setAttribute("aria-expanded",!a);$("nav-lat").hidden=a;document.body.classList.toggle("sin-nav",a);
+  b.setAttribute("aria-label",a?"Abrir menú de navegación":"Cerrar menú de navegación");
+  anunciar(a?"Menú lateral cerrado":"Menú lateral abierto")};
+
+/* ===== Diálogo Premium (<dialog> modal nativo: foco atrapado, Esc cierra, foco vuelve al origen) ===== */
+function premium(fn){
+  $("dlg-d").textContent=`«${fn}» no está incluida en el plan gratuito. Puedes suscribirte o seguir con el plan actual.`;
+  $("dlg").returnValue="";$("dlg").showModal()}
+$("dlg").addEventListener("close",()=>anunciar($("dlg").returnValue==="ok"
+  ?`Suscripción simulada al plan ${new FormData($("fplan")).get("plan")}.`:"Continúas con el plan gratuito."));
+$("dno").onclick=()=>$("dlg").close("no");
+$("dok").onclick=()=>$("dlg").close("ok");
+$("dl").onclick=()=>premium("Descargar canciones");
+$("dl2").onclick=()=>premium("Descargas sin conexión");
+$("ban").onclick=()=>premium("Reproducir sin anuncios");
+
+/* ===== Vistas (Inicio, Explorar, Biblioteca, Accesibilidad, Búsqueda) ===== */
+const vistas={inicio:"Inicio",explorar:"Explorar",biblio:"Mi biblioteca",acc:"Accesibilidad",busq:"Resultados de búsqueda"};
+const movil=()=>matchMedia("(max-width:900px)").matches;
+function cerrarNavMovil(){const m=$("menu");$("nav-lat").hidden=true;document.body.classList.add("sin-nav");
+  m.setAttribute("aria-expanded","false");m.setAttribute("aria-label","Abrir menú de navegación")}
+function ir(v){
+  Object.keys(vistas).forEach(k=>$("v-"+k).hidden=k!==v);
+  document.querySelectorAll("[data-vista]").forEach(x=>{x.dataset.vista===v?x.setAttribute("aria-current","page"):x.removeAttribute("aria-current")});
+  document.querySelector("main").classList.toggle("solo",v!=="inicio");
+  document.title=vistas[v]+" – Music accesible";
+  $("principal").scrollTop=0;$("h-"+v).focus();
+  if(v!=="busq")anunciar("Sección "+vistas[v]);
+}
+document.querySelectorAll("[data-vista]").forEach(b=>b.onclick=()=>{ir(b.dataset.vista);if(movil())cerrarNavMovil()});
+if(movil())cerrarNavMovil();
+
+/* ===== Búsqueda: identificación de errores (3.3.1) y sugerencias (3.3.3) ===== */
+$("fbus").addEventListener("submit",e=>{
+  e.preventDefault();
+  const q=$("q").value.trim(),er=$("q-err");
+  if(!q){$("q").setAttribute("aria-invalid","true");er.hidden=false;
+    er.textContent="Error: escribe una palabra para buscar. Ejemplo: Money.";$("q").focus();return}
+  $("q").removeAttribute("aria-invalid");er.hidden=true;
+  const r=canciones.map((s,i)=>({s,i})).filter(({s})=>(s.t+" "+s.a).toLowerCase().includes(q.toLowerCase()));
+  $("busq-l").innerHTML=r.map(({s,i})=>`<li><button data-i="${i}" aria-label="Reproducir ${s.t}, de ${s.a}">${s.t} · <span class="sec">${s.a}</span></button></li>`).join("");
+  $("busq-l").querySelectorAll("button").forEach(b=>b.onclick=()=>elegir(+b.dataset.i));
+  const msg=r.length?`${r.length} ${r.length===1?"resultado":"resultados"} para «${q}».`
+    :`No hay resultados para «${q}». Revisa la ortografía o prueba con el título o el artista.`;
+  $("busq-r").textContent=msg;ir("busq");anunciar(msg);
+});
+
+/* ===== Letra sincronizada ===== */
+const LY=["Primera línea de la canción","Segunda línea de la canción","Tercera línea de la canción","Cuarta línea de la canción","Quinta línea de la canción","Sexta línea de la canción"];
+$("lyr").innerHTML=LY.map(t=>`<li>${t}</li>`).join("");
+function sync(){const i=Math.floor(seg/5)%LY.length;
+  [...$("lyr").children].forEach((li,k)=>k===i?li.setAttribute("aria-current","true"):li.removeAttribute("aria-current"))}
+sync();
+
+/* ===== Preferencias del usuario (persisten en localStorage, protegido con try/catch) ===== */
+const PREF={fs:100,contr:false,esp:false,mov:false,atj:true};
+try{Object.assign(PREF,JSON.parse(localStorage.getItem("pref-music")||"{}"))}catch(e){}
+const guardar=()=>{try{localStorage.setItem("pref-music",JSON.stringify(PREF))}catch(e){}};
+function aplicar(){
+  const h=document.documentElement;h.style.fontSize=PREF.fs+"%";
+  [["contr","data-contraste","alto"],["esp","data-esp",""],["mov","data-mov",""]].forEach(([k,at,v])=>PREF[k]?h.setAttribute(at,v):h.removeAttribute(at));
+  $("fs-v").textContent=PREF.fs+" %";
+  ["contr","esp","mov"].forEach(k=>$(k).checked=PREF[k]);$("atjc").checked=PREF.atj;
+}
+aplicar();
+const tam=d=>{PREF.fs=Math.max(80,Math.min(200,PREF.fs+d));aplicar();guardar();anunciar("Tamaño del texto al "+PREF.fs+" por ciento")};
+$("amas").onclick=()=>tam(10);$("amenos").onclick=()=>tam(-10);
+const nombres={contr:"Alto contraste",esp:"Espaciado de texto ampliado",mov:"Reducir animaciones",atj:"Atajos de teclado"};
+[["contr","contr"],["esp","esp"],["mov","mov"],["atjc","atj"]].forEach(([id,k])=>$(id).onchange=e=>{
+  PREF[k]=e.target.checked;aplicar();guardar();anunciar(nombres[k]+(PREF[k]?" activado":" desactivado"))});
+$("rst").onclick=()=>{Object.assign(PREF,{fs:100,contr:false,esp:false,mov:false,atj:true});aplicar();guardar();anunciar("Ajustes restablecidos")};
+$("ajb").onclick=()=>$("dajus").showModal();$("cerr-aj").onclick=()=>$("dajus").close();
+$("atj").onclick=()=>$("datj").showModal();$("cerr-atj").onclick=()=>$("datj").close();
+
+pintarPista();
+</script>
+</body>
+</html>
